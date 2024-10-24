@@ -178,13 +178,49 @@ async def chat_view(request):
 
 
 
+# class ChatModelCreateView(APIView):
+#     def post(self, request):
+#         serializer = ChatModelSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()  # This will now handle base64-encoded media
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
 class ChatModelCreateView(APIView):
     def post(self, request):
+        # Load the Excel data
+        excel_data = load_excel_data()
+        # If no response is found in the Excel sheet, proceed with the original logic
         serializer = ChatModelSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()  # This will now handle base64-encoded media
+            
+            # Load existing data
+            df = load_excel_data()
+            print(df)
+            if df is not None:
+                # Create a new DataFrame for the new row with correct column headers
+                new_row = pd.DataFrame({
+                    'message': [serializer.data['user_message']],  # Adjusting the column name to match your headers
+                    'answer': [serializer.data['answers']],  # Adjusting the column name to match your headers
+                    'image_path': [serializer.data.get('image_path', '')],  # Correctly mapping to the headers
+                    'video_path': [serializer.data.get('video_path', '')]   # Ensure this column is included if needed
+                })
+                
+                # Append the new row to the existing DataFrame
+                updated_excel_data = pd.concat([df, new_row], ignore_index=True)  # Use pd.concat
+                
+                # Save the updated DataFrame back to the Excel file
+                save_excel_data(updated_excel_data)
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+    
+    
+
 
 
 
